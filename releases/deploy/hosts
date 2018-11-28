@@ -1,0 +1,5 @@
+[prod]
+-xxx-xxx-xxx-xxx.eu ansible_user=surbhitayal71
+
+[dev]
+-xxx-xxx-xxx-xx ansible_user=surbhitayal71

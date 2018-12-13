@@ -1,6 +1,6 @@
 resource "azurerm_resource_group" "test" {
  name     = "acctestrg"
- location = "East US"
+ location = "West US 2"
 }
 
 resource "azurerm_virtual_network" "test" {
@@ -18,47 +18,45 @@ resource "azurerm_subnet" "test" {
 }
 
 resource "azurerm_public_ip" "test" {
- name                         = "publicIP"
+ name                         = "publicIPForLB"
  location                     = "${azurerm_resource_group.test.location}"
  resource_group_name          = "${azurerm_resource_group.test.name}"
  public_ip_address_allocation = "static"
 }
 
-resource "azurerm_network_security_group" "myterraformnsg" {
-    name                = "myNetworkSecurityGroup"
-    location            = "${azurerm_resource_group.test.location}"
-    resource_group_name = "${azurerm_resource_group.test.name}"
+resource "azurerm_lb" "test" {
+ name                = "loadBalancer"
+ location            = "${azurerm_resource_group.test.location}"
+ resource_group_name = "${azurerm_resource_group.test.name}"
 
-    security_rule {
-        name                       = "SSH"
-        priority                   = 1001
-        direction                  = "Inbound"
-        access                     = "Allow"
-        protocol                   = "Tcp"
-        source_port_range          = "*"
-        destination_port_range     = "22"
-        source_address_prefix      = "*"
-        destination_address_prefix = "*"
-    }
+ frontend_ip_configuration {
+   name                 = "publicIPAddress"
+   public_ip_address_id = "${azurerm_public_ip.test.id}"
+ }
+}
 
-    tags {
-        environment = "Terraform Demo"
-    }
+resource "azurerm_lb_backend_address_pool" "test" {
+ resource_group_name = "${azurerm_resource_group.test.name}"
+ loadbalancer_id     = "${azurerm_lb.test.id}"
+ name                = "BackEndAddressPool"
 }
 
 resource "azurerm_network_interface" "test" {
+ count               = 2
  name                = "acctni${count.index}"
  location            = "${azurerm_resource_group.test.location}"
  resource_group_name = "${azurerm_resource_group.test.name}"
- network_security_group_id = "${azurerm_network_security_group.myterraformnsg.id}"
+
  ip_configuration {
    name                          = "testConfiguration"
    subnet_id                     = "${azurerm_subnet.test.id}"
    private_ip_address_allocation = "dynamic"
-   public_ip_address_id          = "${azurerm_public_ip.test.id}"
+   load_balancer_backend_address_pools_ids = ["${azurerm_lb_backend_address_pool.test.id}"]
+ }
 }
-}
+
 resource "azurerm_managed_disk" "test" {
+ count                = 2
  name                 = "datadisk_existing_${count.index}"
  location             = "${azurerm_resource_group.test.location}"
  resource_group_name  = "${azurerm_resource_group.test.name}"
@@ -76,12 +74,13 @@ resource "azurerm_availability_set" "avset" {
  managed                      = true
 }
 
-resource "azurerm_virtual_machine" "node" {
- name                  = "acctvm0"
+resource "azurerm_virtual_machine" "test" {
+ count                 = 2
+ name                  = "acctvm${count.index}"
  location              = "${azurerm_resource_group.test.location}"
  availability_set_id   = "${azurerm_availability_set.avset.id}"
  resource_group_name   = "${azurerm_resource_group.test.name}"
- network_interface_ids = ["${azurerm_network_interface.test.id}"]
+ network_interface_ids = ["${element(azurerm_network_interface.test.*.id, count.index)}"]
  vm_size               = "Standard_DS1_v2"
 
  # Uncomment this line to delete the OS disk automatically when deleting the VM
@@ -126,14 +125,12 @@ resource "azurerm_virtual_machine" "node" {
    admin_username = "testadmin"
    admin_password = "Password1234!"
  }
+
  os_profile_linux_config {
-         disable_password_authentication = true
-        ssh_keys {
-            path     = "/home/testadmin/.ssh/authorized_keys"
-            key_data = "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAx6BF2ZT0gEIDHGc0uGGeYCVPSLzN5jOCyBI3VCgvaYsupbeTusjYuFBK1g96of+FBn6FSC3QVY2p7gD/6yaXjeuWc0ZsHAohOMNydQl9eq+oWJNH4OoiJXEf6ndkjAsVBp9WyIoWGMpx6fD5EEIkCFVO3TprCEgyq26n8qGXb7xhw8/BRXhbj7oQDa3dyW9yb9NV0MS4a+gVSMu6uMC5L1mcAbaONmCNmL48m3eBbj2b/mHCkJxD0cKUXlo/Vouk7m3+TcQa6OAfq2UpCH6RN5HCwZffbdb66TJsvVlFrFtsCS1GcaRt8kA3tdQlA67iTUhCASWOmqy8CU/Nrg10cQ== rsa-key-20181213"
-        }
-    }
+   disable_password_authentication = false
+ }
+
+ tags {
+   environment = "staging"
+ }
 }
-
-
-

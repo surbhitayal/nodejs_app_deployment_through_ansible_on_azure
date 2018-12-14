@@ -127,7 +127,7 @@ resource "azurerm_virtual_machine" "node" {
    admin_password = "Password1234!"
  }
  os_profile_linux_config {
-         disable_password_authentication = true
+         disable_password_authentication = false
         ssh_keys {
             path     = "/home/testadmin/.ssh/authorized_keys"
             key_data = "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAx6BF2ZT0gEIDHGc0uGGeYCVPSLzN5jOCyBI3VCgvaYsupbeTusjYuFBK1g96of+FBn6FSC3QVY2p7gD/6yaXjeuWc0ZsHAohOMNydQl9eq+oWJNH4OoiJXEf6ndkjAsVBp9WyIoWGMpx6fD5EEIkCFVO3TprCEgyq26n8qGXb7xhw8/BRXhbj7oQDa3dyW9yb9NV0MS4a+gVSMu6uMC5L1mcAbaONmCNmL48m3eBbj2b/mHCkJxD0cKUXlo/Vouk7m3+TcQa6OAfq2UpCH6RN5HCwZffbdb66TJsvVlFrFtsCS1GcaRt8kA3tdQlA67iTUhCASWOmqy8CU/Nrg10cQ== rsa-key-20181213"
